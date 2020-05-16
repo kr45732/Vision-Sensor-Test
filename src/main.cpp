@@ -1,16 +1,13 @@
 #include "main.h"
 
-// Ports
 #define LEFT_DRIVE_MOTOR 20
 #define RIGHT_DRIVE_MOTOR 11
 #define VISION_PORT 6
 #define RIGHT_INTAKE_PORT 12
 #define LEFT_INTAKE_PORT 9
 
-// Namespace
 using namespace pros;
 
-// Create controller, motors and sensors
 Controller vexController(E_CONTROLLER_MASTER);
 Motor leftDrive(LEFT_DRIVE_MOTOR);
 Motor rightDrive(RIGHT_DRIVE_MOTOR, true);
@@ -18,6 +15,10 @@ Motor leftIntake(LEFT_INTAKE_PORT);
 Motor rightIntake(RIGHT_INTAKE_PORT, true);
 Vision visionSensor(VISION_PORT);
 
+void Chassis();
+void Intake(bool intakeForObject = false, int intakeSpeed = 127, int extakeSpeed = 127);
+void VisionSensorMove();
+void VisionSensorCenter(int sig_id, int size_id = 0);
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -79,80 +80,10 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 
-// Vision Sensor ID's
 #define PURPLE_CUBE_ID 1
 #define GREEN_CUBE_ID 2
 #define ORANGE_CUBE_ID 3
 #define BLUE_SPHERE_ID 4
-
-void Chassis(){
-	int forward = vexController.get_analog(ANALOG_LEFT_Y);
-	int turn = vexController.get_analog(ANALOG_RIGHT_X);
-	int left = forward + turn;
-	int right = forward - turn;
-	leftDrive.move(left);
-	rightDrive.move(right);
-
-}
-
-void Intake(bool intakeForObject = false, int intakeSpeed = 127){
-	if (intakeForObject){
-		leftIntake.move(intakeSpeed);
-		rightIntake.move(intakeSpeed);
-		lcd::set_text(4, "bool working");
-	}else if(vexController.get_digital(E_CONTROLLER_DIGITAL_R1)){
-		leftIntake.move(intakeSpeed);
-		rightIntake.move(intakeSpeed);
-	}else if(vexController.get_digital(E_CONTROLLER_DIGITAL_L1)){
-		leftIntake.move(-intakeSpeed);
-		rightIntake.move(-intakeSpeed);
-	}else{
-		leftIntake.move(0);
-		rightIntake.move(0);
-	}
-}
-
-void VisionSensorMove(int objWidth){
-	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
-
-	lcd::set_text(3, "Obj Width: "+ std::to_string(objWidth));
-
-	if (75 < objWidth){
-		lcd::set_text(2, "No objected dected");
-	}else if (70 <= objWidth && objWidth <= 75 ){
-		lcd::set_text(2, "Bringing object in");
-		Intake(bool{true});
-	}else if (5 < objWidth && objWidth < 70){
-			lcd::set_text(2, "Moving forward at: "+ std::to_string(forwardSpeed));
-			leftDrive.move(forwardSpeed);
-		rightDrive.move(forwardSpeed);
-	}
-}
-
-void VisionSensorCenter(int sig_id, int size_id = 0){
-	visionSensor.set_zero_point(E_VISION_ZERO_CENTER);
-	vision_object_s_t rtn = visionSensor.get_by_sig(0, sig_id);
-
-	if (rtn.signature == sig_id){
-		int turnErrorRange = 10;
-		int xMiddle = rtn.x_middle_coord;
-		float turnSpeed = 10 * powf(1.012, abs(xMiddle));
-
-		if (turnErrorRange > xMiddle && xMiddle > -turnErrorRange){
-			lcd::set_text(1, "Object Centered");
-			int objWidth = rtn.width;
-			VisionSensorMove(objWidth);
-		}else if (xMiddle > 0){
-			lcd::set_text(1, "Turn speed: " + std::to_string(turnSpeed));
-			leftDrive.move(turnSpeed);
-			rightDrive.move(-turnSpeed);
-		}else if (xMiddle < 0){
-			lcd::set_text(1, "Turn speed: " + std::to_string(turnSpeed));
-			leftDrive.move(-turnSpeed);
-			rightDrive.move(turnSpeed);
-		}
-	}
-}
 
 void opcontrol() {
 	vision_signature_s_t PUR = visionSensor.signature_from_utility(1, 901, 1821, 1362, 10293, 12743, 11518, 3.000, 0);
@@ -165,7 +96,6 @@ void opcontrol() {
 	visionSensor.set_signature(ORANGE_CUBE_ID, &ORG);
 	visionSensor.set_signature(BLUE_SPHERE_ID, &BLU);
 
-	// Misc
 	bool togglePurple = false;
 	bool toggleGreen = false;
 	bool toggleOrange = false;
@@ -217,7 +147,8 @@ void opcontrol() {
 			}
 		}
 
-		Intake();
+		Intake(false, 127, 64);
+
 		if (!(toggleBlue || togglePurple || toggleGreen || toggleOrange)){
 			Chassis();
 		}else if (togglePurple) {
@@ -232,4 +163,71 @@ void opcontrol() {
 
 		delay(20);
 		}
+}
+
+void Chassis(){
+	float forwardScale = 0.75;
+	float turnScale = 0.5;
+	float forward = forwardScale * vexController.get_analog(ANALOG_LEFT_Y);
+	float turn = turnScale * vexController.get_analog(ANALOG_RIGHT_X);
+	int left = forward + turn;
+	int right = forward - turn;
+	leftDrive.move(left);
+	rightDrive.move(right);
+
+}
+
+void Intake(bool intakeForObject, int intakeSpeed, int extakeSpeed){
+	if(intakeForObject || vexController.get_digital(E_CONTROLLER_DIGITAL_R1)){
+		leftIntake.move(intakeSpeed);
+		rightIntake.move(intakeSpeed);
+	}else if(vexController.get_digital(E_CONTROLLER_DIGITAL_L1)){
+		leftIntake.move(-extakeSpeed);
+		rightIntake.move(-extakeSpeed);
+	}else{
+		leftIntake.move(0);
+		rightIntake.move(0);
+	}
+}
+
+void VisionSensorMove(int objWidth){
+	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
+
+	lcd::set_text(3, "Obj Width: "+ std::to_string(objWidth));
+
+	if (102 < objWidth){
+		lcd::set_text(2, "No objected dected");
+	}else if (68 <= objWidth && objWidth <= 102){
+		lcd::set_text(2, "Bringing object in");
+		Intake(true);
+	}else if (5 < objWidth && objWidth < 68){
+		lcd::set_text(2, "Moving forward at: "+ std::to_string(forwardSpeed));
+		leftDrive.move(forwardSpeed);
+		rightDrive.move(forwardSpeed);
+	}
+}
+
+void VisionSensorCenter(int sig_id, int size_id){
+	visionSensor.set_zero_point(E_VISION_ZERO_CENTER);
+	vision_object_s_t rtn = visionSensor.get_by_sig(0, sig_id);
+
+	if (rtn.signature == sig_id){
+		int turnErrorRange = 10;
+		int xMiddle = rtn.x_middle_coord;
+		float turnSpeed = 10 * powf(1.012, abs(xMiddle));
+
+		if (turnErrorRange > xMiddle && xMiddle > -turnErrorRange){
+			lcd::set_text(1, "Object Centered");
+			int objWidth = rtn.width;
+			VisionSensorMove(objWidth);
+		}else if (xMiddle > 0){
+			lcd::set_text(1, "Turn speed: " + std::to_string(turnSpeed));
+			leftDrive.move(turnSpeed);
+			rightDrive.move(-turnSpeed);
+		}else if (xMiddle < 0){
+			lcd::set_text(1, "Turn speed: " + std::to_string(turnSpeed));
+			leftDrive.move(-turnSpeed);
+			rightDrive.move(turnSpeed);
+		}
+	}
 }
