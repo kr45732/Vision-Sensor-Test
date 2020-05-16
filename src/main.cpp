@@ -1,11 +1,11 @@
 #include "main.h"
 
 // Ports
-#define LEFT_DRIVE_MOTOR 11
-#define RIGHT_DRIVE_MOTOR 20
+#define LEFT_DRIVE_MOTOR 20
+#define RIGHT_DRIVE_MOTOR 11
 #define VISION_PORT 6
-#define RIGHT_INTAKE_PORT 3
-#define LEFT_INTAKE_PORT 10
+#define RIGHT_INTAKE_PORT 12
+#define LEFT_INTAKE_PORT 9
 
 // Namespace
 using namespace pros;
@@ -15,7 +15,7 @@ Controller vexController(E_CONTROLLER_MASTER);
 Motor leftDrive(LEFT_DRIVE_MOTOR);
 Motor rightDrive(RIGHT_DRIVE_MOTOR, true);
 Motor leftIntake(LEFT_INTAKE_PORT);
-Motor rightIntake(RIGHT_INTAKE_PORT);
+Motor rightIntake(RIGHT_INTAKE_PORT, true);
 Vision visionSensor(VISION_PORT);
 
 
@@ -92,14 +92,19 @@ void Chassis(){
 	int right = forward - turn;
 	leftDrive.move(left);
 	rightDrive.move(right);
+
 }
 
-void Intake(int intakeSpeed = 127){
-	if(vexController.get_digital(E_CONTROLLER_DIGITAL_R1)){
-		leftIntake.move(-intakeSpeed);
+void Intake(bool intakeForObject = false, int intakeSpeed = 127){
+	if (intakeForObject){
+		leftIntake.move(intakeSpeed);
+		rightIntake.move(intakeSpeed);
+		lcd::set_text(4, "bool working");
+	}else if(vexController.get_digital(E_CONTROLLER_DIGITAL_R1)){
+		leftIntake.move(intakeSpeed);
 		rightIntake.move(intakeSpeed);
 	}else if(vexController.get_digital(E_CONTROLLER_DIGITAL_L1)){
-		leftIntake.move(intakeSpeed);
+		leftIntake.move(-intakeSpeed);
 		rightIntake.move(-intakeSpeed);
 	}else{
 		leftIntake.move(0);
@@ -109,20 +114,17 @@ void Intake(int intakeSpeed = 127){
 
 void VisionSensorMove(int objWidth){
 	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
-	// float backSpeed = -(10 * powf(1.015, 316 - abs(objWidth))+ 10);
-	int moveError = 13;
 
 	lcd::set_text(3, "Obj Width: "+ std::to_string(objWidth));
 
-	if (objWidth >= 200 - moveError && objWidth <= 200 + moveError) { //243>=objWidth>=227
-		lcd::set_text(2, "Located At Object");
-	// }else if(objWidth < 320 && objWidth > 280 + moveError){ // 320>objWidth>293
-	// 	lcd::set_text(2, "Reversing at: " + std::to_string(backSpeed));
-	// 	leftDrive.move(backSpeed);
-	// 	rightDrive.move(backSpeed);
-	}else if (objWidth > 0 && objWidth < 200 - moveError){ // 277 > objWidth >> 0
-		lcd::set_text(2, "Moving forward at: "+ std::to_string(forwardSpeed));
-		leftDrive.move(forwardSpeed);
+	if (75 < objWidth){
+		lcd::set_text(2, "No objected dected");
+	}else if (70 <= objWidth && objWidth <= 75 ){
+		lcd::set_text(2, "Bringing object in");
+		Intake(bool{true});
+	}else if (5 < objWidth && objWidth < 70){
+			lcd::set_text(2, "Moving forward at: "+ std::to_string(forwardSpeed));
+			leftDrive.move(forwardSpeed);
 		rightDrive.move(forwardSpeed);
 	}
 }
@@ -170,7 +172,6 @@ void opcontrol() {
 	bool toggleBlue = false;
 
 	while(true){
-	// Toggle driver mode or different color modes
 		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
 			if (toggleBlue || togglePurple || toggleGreen || toggleOrange){
 				togglePurple = toggleGreen = toggleOrange = toggleBlue = false;
@@ -230,5 +231,5 @@ void opcontrol() {
 		}
 
 		delay(20);
-	}
+		}
 }
