@@ -85,6 +85,9 @@ void autonomous() {}
 #define ORANGE_CUBE_ID 3
 #define BLUE_SPHERE_ID 4
 
+bool objIntaked = false;
+bool atDropOff = false;
+
 void opcontrol() {
 	vision_signature_s_t PUR = visionSensor.signature_from_utility(1, 901, 1821, 1362, 10293, 12743, 11518, 3.000, 0);
 	vision_signature_s_t GRE = visionSensor.signature_from_utility(2, -7299, -6057, -6678, -4197, -2977, -3588, 3.000, 0);
@@ -96,15 +99,12 @@ void opcontrol() {
 	visionSensor.set_signature(ORANGE_CUBE_ID, &ORG);
 	visionSensor.set_signature(BLUE_SPHERE_ID, &BLU);
 
-	bool togglePurple = false;
-	bool toggleGreen = false;
-	bool toggleOrange = false;
-	bool toggleBlue = false;
+	bool toggleDriver = true;
 
-	while(true){
+	while(!objIntaked){
 		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
-			if (toggleBlue || togglePurple || toggleGreen || toggleOrange){
-				togglePurple = toggleGreen = toggleOrange = toggleBlue = false;
+			if (toggleDriver == false){
+				toggleDriver = true;
 				vexController.clear();
 				delay(50);
 				vexController.set_text(0, 0, "Driver Mode");
@@ -112,57 +112,59 @@ void opcontrol() {
 				for (size_t i{1}; i<8; i++){
 					lcd::clear_line(i);
 				}
-			}
-		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
-			if (togglePurple == false){
-				togglePurple = true;
-				toggleGreen = toggleOrange = toggleBlue = false;
-				vexController.clear();
-				delay(50);
-				vexController.set_text(0, 0, "Auto Purple");
-			}
-		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_X)){
-			if (toggleGreen == false){
-				togglePurple = toggleOrange = toggleBlue = false;
-				toggleGreen = true;
-				vexController.clear();
-				delay(50);
-				vexController.set_text(0, 0, "Auto Green");
-			}
-		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_Y)){
-			if (toggleOrange == false){
-				togglePurple = toggleGreen = toggleBlue = false;
-				toggleOrange = true;
-				vexController.clear();
-				delay(50);
-				vexController.set_text(0, 0, "Auto Orange");
-			}
-		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_B)){
-			if (toggleBlue == false){
-				togglePurple = toggleGreen = toggleOrange = false;
-				toggleBlue = true;
+			}else if (toggleDriver == true){
+				toggleDriver = false;
 				vexController.clear();
 				delay(50);
 				vexController.set_text(0, 0, "Auto Blue");
+				lcd::set_text(0, "Auto Blue");
+				}
 			}
-		}
 
-		Intake(false, 127, 64);
-
-		if (!(toggleBlue || togglePurple || toggleGreen || toggleOrange)){
+		if (toggleDriver){
+			Intake(false, 127, 64);
 			Chassis();
-		}else if (togglePurple) {
-			VisionSensorCenter(1);
-		}else if (toggleGreen) {
-			VisionSensorCenter(2);
-		}else if (toggleOrange) {
-			VisionSensorCenter(3);
-		}else if (toggleBlue) {
+		}else{
 			VisionSensorCenter(4);
 		}
 
 		delay(20);
 		}
+
+	while(!atDropOff){
+
+		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
+			if (toggleDriver == false){
+				toggleDriver = true;
+				vexController.clear();
+				delay(50);
+				vexController.set_text(0, 0, "Driver Mode");
+				lcd::set_text(0, "Driver Mode");
+				for (size_t i{1}; i<8; i++){
+					lcd::clear_line(i);
+				}
+			}else if (toggleDriver == true){
+				toggleDriver = false;
+				vexController.clear();
+				delay(50);
+				vexController.set_text(0, 0, "Drop-off");
+				lcd::set_text(0, "Drop-off");
+				}
+			}
+
+		if (toggleDriver){
+			Intake(false, 127, 64);
+			Chassis();
+		}else{
+			// Add drop-off code
+				// 1. Search for drop off color (orange?)
+				// 2. Get to a certian distance from drop off cube/color
+				// 3. Intake the ball out slowly
+				// 4. Back away at a medium speed from drop off zone
+		}
+
+		delay(20);
+	}
 }
 
 void Chassis(){
@@ -197,6 +199,7 @@ void VisionSensorMove(int objWidth){
 
 	if (102 < objWidth){
 		lcd::set_text(2, "No objected dected");
+		objIntaked = true;
 	}else if (68 <= objWidth && objWidth <= 102){
 		lcd::set_text(2, "Bringing object in");
 		Intake(true);
