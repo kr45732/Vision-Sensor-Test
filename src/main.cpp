@@ -17,7 +17,8 @@ Vision visionSensor(VISION_PORT);
 
 void Chassis();
 void Intake(bool intakeForObject = false, int intakeSpeed = 127, int extakeSpeed = 127);
-void VisionSensorMove();
+void VisionSensorBlueBall(int objWidth);
+void VisionSensorCubeDropOff(int objWidth);
 void VisionSensorCenter(int sig_id, int size_id = 0);
 
 /**
@@ -156,15 +157,14 @@ void opcontrol() {
 			Intake(false, 127, 64);
 			Chassis();
 		}else{
-			// Add drop-off code
-				// 1. Search for drop off color (orange?)
-				// 2. Get to a certian distance from drop off cube/color
-				// 3. Intake the ball out slowly
-				// 4. Back away at a medium speed from drop off zone
+				VisionSensorCenter(2);
+
 		}
 
 		delay(20);
 	}
+	// 3. Intake the ball out slowly
+	// 4. Back away at a medium speed from drop off zone
 }
 
 void Chassis(){
@@ -192,25 +192,44 @@ void Intake(bool intakeForObject, int intakeSpeed, int extakeSpeed){
 	}
 }
 
-void VisionSensorMove(int objWidth){
+void VisionSensorBlueBall(int objWidth){
 	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
+	int topBound = 102;
+	int bottomBound = 68;
 
 	lcd::set_text(3, "Obj Width: "+ std::to_string(objWidth));
 
-	if (102 < objWidth){
-		lcd::set_text(2, "No objected dected");
+	if (topBound < objWidth){
+		lcd::set_text(2, "Object Intaked");
 		objIntaked = true;
-	}else if (68 <= objWidth && objWidth <= 102){
-		lcd::set_text(2, "Bringing object in");
+	}else if (bottomBound <= objWidth && objWidth <= topBound){
+		lcd::set_text(2, "Intaking");
 		Intake(true);
-	}else if (5 < objWidth && objWidth < 68){
-		lcd::set_text(2, "Moving forward at: "+ std::to_string(forwardSpeed));
+	}else if (5 < objWidth && objWidth < bottomBound){
+		lcd::set_text(2, "Moving Forward At: "+ std::to_string(forwardSpeed));
 		leftDrive.move(forwardSpeed);
 		rightDrive.move(forwardSpeed);
 	}
 }
 
-void VisionSensorCenter(int sig_id, int size_id){
+void VisionSensorCubeDropOff(int objWidth){
+	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
+	int topBound = 102;
+	int bottomBound = 68;
+
+	lcd::set_text(3, "Obj Width: "+ std::to_string(objWidth));
+
+	if (bottomBound <= objWidth && objWidth <= topBound){
+		lcd::set_text(2, "At Drop Off");
+		atDropOff = true;
+	}else if (5 < objWidth && objWidth < bottomBound){
+		lcd::set_text(2, "Moving Forward At: " + std::to_string(forwardSpeed));
+		leftDrive.move(forwardSpeed);
+		rightDrive.move(forwardSpeed);
+	}
+}
+
+void VisionSensorCenter(int sig_id, int size_id, bool){
 	visionSensor.set_zero_point(E_VISION_ZERO_CENTER);
 	vision_object_s_t rtn = visionSensor.get_by_sig(0, sig_id);
 
@@ -222,7 +241,11 @@ void VisionSensorCenter(int sig_id, int size_id){
 		if (turnErrorRange > xMiddle && xMiddle > -turnErrorRange){
 			lcd::set_text(1, "Object Centered");
 			int objWidth = rtn.width;
-			VisionSensorMove(objWidth);
+			if(!objIntaked){
+				VisionSensorBlueBall(objWidth);
+			}else{
+				VisionSensorCubeDropOff(objWidth);
+			}
 		}else if (xMiddle > 0){
 			lcd::set_text(1, "Turn speed: " + std::to_string(turnSpeed));
 			leftDrive.move(turnSpeed);
