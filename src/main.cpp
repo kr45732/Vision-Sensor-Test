@@ -84,27 +84,31 @@ void autonomous() {}
 #define GREEN_CUBE_ID 2
 #define ORANGE_CUBE_ID 3
 #define BLUE_SPHERE_ID 4
+#define RED_SPHERE_ID 5
 
 void opcontrol() {
 	vision_signature_s_t PUR = visionSensor.signature_from_utility(1, 901, 1821, 1362, 10293, 12743, 11518, 3.000, 0);
 	vision_signature_s_t GRE = visionSensor.signature_from_utility(2, -7299, -6057, -6678, -4197, -2977, -3588, 3.000, 0);
 	vision_signature_s_t ORG = visionSensor.signature_from_utility(3, 6433, 9433, 7934, -2875, -2409, -2642, 3.900, 0);
-	vision_signature_s_t BLU = visionSensor.signature_from_utility(4, -3205, -2095, -2650, 6807, 10725, 8766, 2.300, 0);
+	vision_signature_s_t BLU = visionSensor.signature_from_utility(4, -3091, -2185, -2638, 10051, 13449, 11750, 3.000, 0);
+	vision_signature_s_t RD = visionSensor.signature_from_utility(5, 7601, 9865, 8733, 241, 1089, 665, 3.000, 0);
 
 	visionSensor.set_signature(PURPLE_CUBE_ID, &PUR);
 	visionSensor.set_signature(GREEN_CUBE_ID, &GRE);
 	visionSensor.set_signature(ORANGE_CUBE_ID, &ORG);
 	visionSensor.set_signature(BLUE_SPHERE_ID, &BLU);
+	visionSensor.set_signature(RED_SPHERE_ID, &RD);
 
 	bool togglePurple = false;
 	bool toggleGreen = false;
 	bool toggleOrange = false;
 	bool toggleBlue = false;
+	bool toggleRed = false;
 
 	while(true){
 		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
 			if (toggleBlue || togglePurple || toggleGreen || toggleOrange){
-				togglePurple = toggleGreen = toggleOrange = toggleBlue = false;
+				togglePurple = toggleGreen = toggleOrange = toggleBlue = toggleRed = false;
 				vexController.clear();
 				delay(50);
 				vexController.set_text(0, 0, "Driver Mode");
@@ -113,17 +117,17 @@ void opcontrol() {
 					lcd::clear_line(i);
 				}
 			}
-		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
-			if (togglePurple == false){
-				togglePurple = true;
-				toggleGreen = toggleOrange = toggleBlue = false;
-				vexController.clear();
-				delay(50);
-				vexController.set_text(0, 0, "Auto Purple");
-			}
+		// }else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
+		// 	if (togglePurple == false){
+		// 		togglePurple = true;
+		// 		toggleGreen = toggleOrange = toggleBlue = toggleRed = false;
+		// 		vexController.clear();
+		// 		delay(50);
+		// 		vexController.set_text(0, 0, "Auto Purple");
+		// 	}
 		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_X)){
 			if (toggleGreen == false){
-				togglePurple = toggleOrange = toggleBlue = false;
+				togglePurple = toggleOrange = toggleBlue = toggleRed = false;
 				toggleGreen = true;
 				vexController.clear();
 				delay(50);
@@ -131,7 +135,7 @@ void opcontrol() {
 			}
 		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_Y)){
 			if (toggleOrange == false){
-				togglePurple = toggleGreen = toggleBlue = false;
+				togglePurple = toggleGreen = toggleBlue = toggleRed = false;
 				toggleOrange = true;
 				vexController.clear();
 				delay(50);
@@ -139,18 +143,25 @@ void opcontrol() {
 			}
 		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_B)){
 			if (toggleBlue == false){
-				togglePurple = toggleGreen = toggleOrange = false;
+				togglePurple = toggleGreen = toggleOrange = toggleRed = false;
 				toggleBlue = true;
 				vexController.clear();
 				delay(50);
 				vexController.set_text(0, 0, "Auto Blue");
 			}
+		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
+			if (toggleRed == false){
+				togglePurple = toggleGreen = toggleOrange = toggleBlue = false;
+				toggleRed = true;
+				vexController.clear();
+				delay(50);
+				vexController.set_text(0, 0, "Auto Red");
+			}
 		}
 
-		Intake(false, 127, 64);
-
-		if (!(toggleBlue || togglePurple || toggleGreen || toggleOrange)){
+		if (!(toggleBlue || togglePurple || toggleGreen || toggleOrange || toggleRed)){
 			Chassis();
+			Intake(false, 127, 64);
 		}else if (togglePurple) {
 			VisionSensorCenter(1);
 		}else if (toggleGreen) {
@@ -159,10 +170,12 @@ void opcontrol() {
 			VisionSensorCenter(3);
 		}else if (toggleBlue) {
 			VisionSensorCenter(4);
+		}else if (toggleRed) {
+			VisionSensorCenter(5);
 		}
 
 		delay(20);
-		}
+	}
 }
 
 void Chassis(){
