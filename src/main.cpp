@@ -17,8 +17,7 @@ Vision visionSensor(VISION_PORT);
 
 void Chassis();
 void Intake(bool intakeForObject = false, int intakeSpeed = 127, int extakeSpeed = 127);
-void VisionSensorBlueBall(int objWidth);
-void VisionSensorCubeDropOff(int objWidth);
+void VisionSensorMove(int objWidth);
 void VisionSensorCenter(int sig_id, int size_id = 0);
 void ResetAll();
 
@@ -94,9 +93,6 @@ void autonomous() {}
 
 bool toggleDriver = true;
 bool objIntaked = false;
-bool atDropOff = false;
-bool atPurple = false;
-bool atOrange = false;
 
 void opcontrol() {
 	vision_signature_s_t PUR = visionSensor.signature_from_utility(1, 1169, 1891, 1530, 10347, 11797, 11072, 3.000, 0);
@@ -110,114 +106,30 @@ void opcontrol() {
 	visionSensor.set_signature(BLUE_SPHERE_ID, &BLU);
 
 	while(true){
-		if (!objIntaked && !atDropOff){
-			if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
-				if (toggleDriver == false){
-					toggleDriver = true;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Driver - Blue");
-					lcd::set_text(0, "Driver Mode - Blue Ball");
-					for (size_t i{1}; i<8; i++){
-						lcd::clear_line(i);
-					}
-				}else if (toggleDriver == true){
-					toggleDriver = false;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Auto Blue");
-					lcd::set_text(0, "Auto Blue");
-					}
+		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
+			if (toggleDriver == false){
+				toggleDriver = true;
+				vexController.clear();
+				delay(50);
+				vexController.set_text(0, 0, "Driver - Blue");
+				lcd::set_text(0, "Driver Mode - Blue Ball");
+				for (size_t i{1}; i<8; i++){
+					lcd::clear_line(i);
 				}
-
-			if (toggleDriver){
-				Intake(false, 127, 64);
-				Chassis();
-			}else{
-				VisionSensorCenter(4);
-			}
-		}else if(objIntaked && !atDropOff){
-			if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
-				if (toggleDriver == false){
-					toggleDriver = true;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Driver - Drop Off");
-					lcd::set_text(0, "Driver Mode - Drop Off");
-					for (size_t i{1}; i<8; i++){
-						lcd::clear_line(i);
-					}
-				}else if (toggleDriver == true){
-					toggleDriver = false;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Auto Drop Off");
-					lcd::set_text(0, "Auto Drop Off");
-					}
+			}else if (toggleDriver == true){
+				toggleDriver = false;
+				vexController.clear();
+				delay(50);
+				vexController.set_text(0, 0, "Auto Blue");
+				lcd::set_text(0, "Auto Blue");
 				}
-
-			if (toggleDriver){
-				Intake(false, 127, 64);
-				Chassis();
-			}else{
-					VisionSensorCenter(2);
 			}
-		}else if(atDropOff && !atPurple){
-			if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
-				if (toggleDriver == false){
-					toggleDriver = true;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Driver - Purple");
-					lcd::set_text(0, "Driver Mode - Purple Cube");
-					for (size_t i{1}; i<8; i++){
-						lcd::clear_line(i);
-					}
-				}else if (toggleDriver == true){
-					toggleDriver = false;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Auto Purple Cube");
-					lcd::set_text(0, "Auto Purple Cube");
-					}
-				}
 
-			if (toggleDriver){
-				Intake(false, 127, 64);
-				Chassis();
-			}else{
-				VisionSensorCenter(1);
-			}
-		}else if(atPurple && !atOrange){
-			if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
-				if (toggleDriver == false){
-					toggleDriver = true;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Driver - Orange");
-					lcd::set_text(0, "Driver Mode - Orange Cube");
-					for (size_t i{1}; i<8; i++){
-						lcd::clear_line(i);
-					}
-				}else if (toggleDriver == true){
-					toggleDriver = false;
-					vexController.clear();
-					delay(50);
-					vexController.set_text(0, 0, "Auto Orange Cube");
-					lcd::set_text(0, "Auto Orange Cube");
-					}
-				}
-
-			if (toggleDriver){
-				Intake(false, 127, 64);
-				Chassis();
-			}else{
-				VisionSensorCenter(3);
-			}
+		if (toggleDriver){
+			Intake(false, 127, 64);
+			Chassis();
 		}else{
-			leftDrive.move(0);
-			rightDrive.move(0);
-			break;
+			VisionSensorCenter(4);
 		}
 
 		delay(20);
@@ -249,7 +161,7 @@ void Intake(bool intakeForObject, int intakeSpeed, int extakeSpeed){
 	}
 }
 
-void VisionSensorBlueBall(int objWidth){
+void VisionSensorMove(int objWidth){
 	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
 	int topBound = 69;
 	int bottomBound = 63;
@@ -270,77 +182,6 @@ void VisionSensorBlueBall(int objWidth){
 	}
 }
 
-void VisionSensorCubeDropOff(int objWidth){
-	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
-	int topBound = 57;
-	int bottomBound = 47;
-
-	lcd::set_text(4, "Obj Width: "+ std::to_string(objWidth));
-
-	if (bottomBound <= objWidth && objWidth <= topBound){
-		lcd::set_text(3, "At Drop Off");
-		ResetAll();
-
-		int intakeMove = -360;
-		rightIntake.tare_position();
-		leftIntake.tare_position();
-		rightIntake.move_relative(intakeMove, 80);
-		leftIntake.move_relative(intakeMove, 80);
-		while (!((rightIntake.get_position() < intakeMove + 5) && (rightIntake.get_position() > intakeMove - 5))){
-    	pros::delay(2);
-  	}
-		int motorMove = -360;
-		leftDrive.tare_position();
-		rightDrive.tare_position();
-		leftDrive.move_relative(motorMove, 50);
-		rightDrive.move_relative(motorMove, 50);
-		while (!((leftDrive.get_position() < motorMove + 5) && (leftDrive.get_position() > motorMove - 5))){
-    	pros::delay(2);
-  	}
-		atDropOff = true;
-	}else if (5 < objWidth && objWidth < bottomBound){
-		lcd::set_text(1, "Moving Forward At: " + std::to_string(forwardSpeed));
-		leftDrive.move(forwardSpeed);
-		rightDrive.move(forwardSpeed);
-	}
-}
-
-void VisionSensorPurpleCube(int objWidth){
-	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
-	int topBound = 70;
-	int bottomBound = 65;
-
-	lcd::set_text(4, "Obj Width: "+ std::to_string(objWidth));
-
-	if (bottomBound <= objWidth && objWidth <= topBound){
-		lcd::set_text(3, "At Purple Cube");
-		ResetAll();
-		atPurple = true;
-	}else if (5 < objWidth && objWidth < bottomBound){
-		lcd::set_text(1, "Moving Forward At: " + std::to_string(forwardSpeed));
-		leftDrive.move(forwardSpeed);
-		rightDrive.move(forwardSpeed);
-	}
-}
-
-void VisionSensorOrangeCube(int objWidth){
-	float forwardSpeed = 10 * powf(1.005, 316 - abs(objWidth));
-	int topBound = 66;
-	int bottomBound = 61;
-
-	lcd::set_text(4, "Obj Width: "+ std::to_string(objWidth));
-
-	if (bottomBound <= objWidth && objWidth <= topBound){
-		lcd::set_text(3, "At Orange Cube");
-		ResetAll();
-		atPurple = true;
-	}else if (5 < objWidth && objWidth < bottomBound){
-		lcd::set_text(1, "Moving Forward At: " + std::to_string(forwardSpeed));
-		leftDrive.move(forwardSpeed);
-		rightDrive.move(forwardSpeed);
-	}
-}
-
 void VisionSensorCenter(int sig_id, int size_id){
 	visionSensor.set_zero_point(E_VISION_ZERO_CENTER);
 	vision_object_s_t rtn = visionSensor.get_by_sig(0, sig_id);
@@ -353,16 +194,7 @@ void VisionSensorCenter(int sig_id, int size_id){
 		if (turnErrorRange > xMiddle && xMiddle > -turnErrorRange){
 			lcd::set_text(2, "Object Centered");
 			int objWidth = rtn.width;
-			if(!objIntaked && !atDropOff){
-				VisionSensorBlueBall(objWidth);
-			}else if(objIntaked && !atDropOff){
-				VisionSensorCubeDropOff(objWidth);
-			}else if(atDropOff && !atPurple){
-				VisionSensorPurpleCube(objWidth);
-
-			}else if(atPurple && !atOrange){
-				VisionSensorOrangeCube(objWidth);
-			}
+			VisionSensorMove(objWidth);
 		}else if (xMiddle > 0){
 			lcd::set_text(1, "Turn speed: " + std::to_string(turnSpeed));
 			leftDrive.move(turnSpeed);
@@ -372,10 +204,6 @@ void VisionSensorCenter(int sig_id, int size_id){
 			leftDrive.move(-turnSpeed);
 			rightDrive.move(turnSpeed);
 		}
-	}else if(rtn.signature == 255 && (atDropOff || atPurple)){
-		int turnSpeed = 30;
-		rightDrive.move(turnSpeed);
-		leftDrive.move(-turnSpeed);
 	}
 }
 
