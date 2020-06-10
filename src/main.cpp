@@ -90,46 +90,65 @@ void autonomous() {}
 #define GREEN_CUBE_ID 2
 #define ORANGE_CUBE_ID 3
 #define BLUE_SPHERE_ID 4
+#define RED_SPHERE_ID 5
 
-bool toggleDriver = true;
+bool toggleBlue = false;
+bool toggleRed = false;
 bool objIntaked = false;
+int rightDriveSpeedFix = 5; // Added speed for the right drive so it does straight
 
 void opcontrol() {
 	vision_signature_s_t PUR = visionSensor.signature_from_utility(1, 1169, 1891, 1530, 10347, 11797, 11072, 3.000, 0);
 	vision_signature_s_t GRE = visionSensor.signature_from_utility(2, -8357, -6569, -7464, -5797, -3309, -4554, 3.000, 0);
 	vision_signature_s_t ORG = visionSensor.signature_from_utility(3, 10747, 11843, 11295, -2253, -1833, -2043, 4.000, 0);
-	vision_signature_s_t BLU = visionSensor.signature_from_utility(4, -2963, -2159, -2560, 10119, 13043, 11580, 3.000, 0);
+	vision_signature_s_t BLU = visionSensor.signature_from_utility(4, -2831, -2143, -2486, 10047, 12385, 11216, 3.000, 0);
+	vision_signature_s_t RD = visionSensor.signature_from_utility(5, 6371, 9597, 7984, 327, 1261, 794, 3.000, 0);
 
 	visionSensor.set_signature(PURPLE_CUBE_ID, &PUR);
 	visionSensor.set_signature(GREEN_CUBE_ID, &GRE);
 	visionSensor.set_signature(ORANGE_CUBE_ID, &ORG);
 	visionSensor.set_signature(BLUE_SPHERE_ID, &BLU);
+	visionSensor.set_signature(RED_SPHERE_ID, &RD);
 
 	while(true){
-		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)){
-			if (toggleDriver == false){
-				toggleDriver = true;
+		if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_UP) || objIntaked){
+			if (toggleBlue || toggleRed){
+				toggleBlue = toggleRed = objIntaked = false;
 				vexController.clear();
 				delay(50);
-				vexController.set_text(0, 0, "Driver - Blue");
-				lcd::set_text(0, "Driver Mode - Blue Ball");
+				vexController.set_text(0, 0, "Driver Mode");
+				lcd::set_text(0, "Driver Mode");
 				for (size_t i{1}; i<8; i++){
 					lcd::clear_line(i);
 				}
-			}else if (toggleDriver == true){
-				toggleDriver = false;
+			}
+		}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_B)){
+			if (toggleBlue == false){
+				toggleBlue = true;
+				toggleRed = false;
 				vexController.clear();
 				delay(50);
 				vexController.set_text(0, 0, "Auto Blue");
 				lcd::set_text(0, "Auto Blue");
 				}
+			}else if (vexController.get_digital_new_press(E_CONTROLLER_DIGITAL_A)){
+				if (toggleRed == false){
+					toggleRed = true;
+					toggleBlue = false;
+					vexController.clear();
+					delay(50);
+					vexController.set_text(0, 0, "Auto Red");
+					lcd::set_text(0, "Auto Red");
+				}
 			}
 
-		if (toggleDriver){
+		if (!(toggleBlue || toggleRed)){
 			Intake(false, 127, 64);
 			Chassis();
-		}else{
+		}else if(toggleBlue){
 			VisionSensorCenter(4);
+		}else if(toggleRed){
+			VisionSensorCenter(5);
 		}
 
 		delay(20);
@@ -144,8 +163,11 @@ void Chassis(){
 	int left = forward + turn;
 	int right = forward - turn;
 	leftDrive.move(left);
-	rightDrive.move(right);
-
+	rightDrive.move(right + (abs(((int) forward)/ (int) forward)*rightDriveSpeedFix));
+	if (left == 0 || right == 0){
+		leftDrive.move(0);
+		leftDrive.move(0);
+	}
 }
 
 void Intake(bool intakeForObject, int intakeSpeed, int extakeSpeed){
@@ -178,7 +200,7 @@ void VisionSensorMove(int objWidth){
 	}else if (5 < objWidth && objWidth < bottomBound){
 		lcd::set_text(1, "Moving Forward At: "+ std::to_string(forwardSpeed));
 		leftDrive.move(forwardSpeed);
-		rightDrive.move(forwardSpeed);
+		rightDrive.move(forwardSpeed + rightDriveSpeedFix);
 	}
 }
 
@@ -208,7 +230,6 @@ void VisionSensorCenter(int sig_id, int size_id){
 }
 
 void ResetAll(){
-	toggleDriver = true;
 	for (size_t i{0}; i<8; i++)
 		lcd::clear_line(i);
 	delay(20);
